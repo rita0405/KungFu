@@ -11,6 +11,7 @@ import os
 import timeit
 import time
 import json
+import logging
 
 import numpy as np
 import tensorflow as tf
@@ -74,6 +75,8 @@ parser.add_argument('--fuse',
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda
+
+logging.basicConfig(filename=os.path.join(args.log_file_path, "throughput.json"), level=logging.DEBUG)
 
 config = tf.ConfigProto()
 if args.cuda:
@@ -149,7 +152,7 @@ def log_to_file(num_workers, images_second):
     result["images_second"] = images_second
     result["timestamp"] = time.time()
     
-    with open(args.log_file_path, "a") as file:
+    with open(os.path.join(args.log_file_path, "throughput.json"), "a") as file:
         file.write(json.dumps(result) + "\n")
 
 
@@ -179,7 +182,9 @@ def run(sess, train_op, bcast_op):
     sync_step_op = all_reduce(step_place, op='max')
     resize_op = resize_cluster_from_url()
     init_save_op = tf.group([save_variable(v) for v in tf.trainable_variables()])
+    logging.debug("before init_save_op")
     sess.run(init_save_op)
+    logging.debug("after init_save_op")
     # Benchmark
     log('Running benchmark...')
     img_secs = []
@@ -187,19 +192,23 @@ def run(sess, train_op, bcast_op):
     step = 0
     while step < args.num_iters:
         if need_sync:
+            logging.debug("before sync_step_op")
             new_step = sess.run(sync_step_op, feed_dict={step_place: step})
+            logging.debug("after sync_step_op")
             if new_step != step:
                 print('sync step : %d -> %d' % (step, new_step))
             step = new_step
             if bcast_op:
-                duration, _ = measure(lambda: session.run(bcast_op))
+                logging.debug("before bcast_op")
+                duration, _ = measure(lambda: sess.run(bcast_op))
+                logging.debug("after bcast_op")
                 log('bcast_op took %.3fs' % (duration))
             need_sync = False
         step += 1
-        print("before train_op")
+        logging.debug("before train_op")
         time = timeit.timeit(lambda: sess.run(train_op),
                              number=args.num_batches_per_iter)
-        print("after train_op")
+        logging.debug("after train_op")
         img_sec = args.batch_size / time
         log('Iter #%d: %.1f img/sec per %s' % (step, img_sec, device))
         log_to_file(current_cluster_size(), img_sec)
