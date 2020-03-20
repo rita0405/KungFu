@@ -150,7 +150,6 @@ func (sess *session) Request(rank int, version, name string, buf *kb.Vector) (bo
 		return false, errInvalidRank
 	}
 	peer := sess.peers[rank]
-	log.Debugf("before sess.router.P2P.Request\n")
 	return sess.router.P2P.Request(peer.WithName(name), version, asMessage(buf))
 }
 
