@@ -16,7 +16,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import applications
 from tensorflow.python.util import deprecation
-from kungfu.tensorflow.ops import all_reduce, resize_cluster_from_url, current_rank, current_cluster_size
+from kungfu.tensorflow.ops import all_reduce, resize_cluster_from_url, current_rank, current_cluster_size, save_variable
 from kungfu._utils import measure
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -178,6 +178,8 @@ def run(sess, train_op, bcast_op):
     step_place = tf.placeholder(dtype=tf.int32, shape=())
     sync_step_op = all_reduce(step_place, op='max')
     resize_op = resize_cluster_from_url()
+    init_save_op = tf.group([save_variable(v) for v in tf.trainable_variables()])
+    sess.run(init_save_op)
     # Benchmark
     log('Running benchmark...')
     img_secs = []
