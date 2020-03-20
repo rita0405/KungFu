@@ -196,8 +196,10 @@ def run(sess, train_op, bcast_op):
                 log('bcast_op took %.3fs' % (duration))
             need_sync = False
         step += 1
+        print("before train_op")
         time = timeit.timeit(lambda: sess.run(train_op),
                              number=args.num_batches_per_iter)
+        print("after train_op")
         img_sec = args.batch_size / time
         log('Iter #%d: %.1f img/sec per %s' % (step, img_sec, device))
         log_to_file(current_cluster_size(), img_sec)
