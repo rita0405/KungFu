@@ -195,7 +195,7 @@ def run(sess, bcast_op, ssgd_train_op, pair_train_op):
             need_sync = False
         step += 1
         logging.debug("before train_op")
-        if current_cluster_size() < 3:
+        if current_cluster_size() <= 12:
             time = timeit.timeit(lambda: sess.run(ssgd_train_op),
                                  number=args.num_batches_per_iter)
         else:
