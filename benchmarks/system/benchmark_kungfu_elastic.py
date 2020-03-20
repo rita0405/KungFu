@@ -76,7 +76,7 @@ parser.add_argument('--fuse',
 args = parser.parse_args()
 args.cuda = not args.no_cuda
 
-logging.basicConfig(filename=os.path.join(args.log_file_path, "throughput.json"), level=logging.DEBUG)
+logging.basicConfig(filename=os.path.join(args.log_file_path, "training.log"), level=logging.DEBUG)
 
 config = tf.ConfigProto()
 if args.cuda:
