@@ -1,6 +1,6 @@
 import tensorflow as tf
 from kungfu.tensorflow.compat import _tf_assign, _tf_mod
-from kungfu.tensorflow.ops import (barrier, counter, peer_info
+from kungfu.tensorflow.ops import (barrier, counter, peer_info,
                                    defuse, fuse,
                                    request_variable,
                                    request_variable_with_template,
