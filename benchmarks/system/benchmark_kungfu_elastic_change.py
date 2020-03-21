@@ -186,6 +186,7 @@ def run(sess, bcast_op, ssgd_train_op, pair_train_op):
     img_secs = []
     need_sync = True
     step = 0
+    adaptation_start = time.time()
     while step < args.num_iters:
         if need_sync:
             logging.debug("before sync_step_op")
