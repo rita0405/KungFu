@@ -163,6 +163,13 @@ def log_final_result(value, error):
     log_detailed_result(value, error, attrs)
 
 
+def log_adaptation_duration_to_file(num_workers, duration):
+    line = str(num_workers) + "," + str(duration)
+    
+    with open(os.path.join(args.log_file_path, "adaptation_duration.txt"), "a") as file:
+        file.write(line + "\n")
+
+
 def run(sess, bcast_op, ssgd_train_op, pair_train_op):
     if args.num_batches_per_iter > 1:
         print('--num-batches-per-iter == 1 is highly recommended, using %d' %
@@ -193,16 +200,18 @@ def run(sess, bcast_op, ssgd_train_op, pair_train_op):
                 logging.debug("after bcast_op")
                 log('bcast_op took %.3fs' % (duration))
             need_sync = False
+            adaptation_duration = time.time() - adaptation_start
+            log_adaptation_duration_to_file(current_cluster_size(), adaptation_duration)
         step += 1
         logging.debug("before train_op")
         if current_cluster_size() <= 12:
-            time = timeit.timeit(lambda: sess.run(ssgd_train_op),
+            timeing = timeit.timeit(lambda: sess.run(ssgd_train_op),
                                  number=args.num_batches_per_iter)
         else:
-            time = timeit.timeit(lambda: sess.run(pair_train_op),
+            timeing = timeit.timeit(lambda: sess.run(pair_train_op),
                                  number=args.num_batches_per_iter)
         logging.debug("after train_op")
-        img_sec = args.batch_size / time
+        img_sec = args.batch_size / timeing
         log('Iter #%d: %.1f img/sec per %s' % (step, img_sec, device))
         log_to_file(current_cluster_size(), img_sec)
         img_secs.append(img_sec)
@@ -211,6 +220,7 @@ def run(sess, bcast_op, ssgd_train_op, pair_train_op):
         if not keep:
             return
         if changed:
+            adaptation_start = time.time()
             need_sync = True
 
     img_sec_mean = np.mean(img_secs)
