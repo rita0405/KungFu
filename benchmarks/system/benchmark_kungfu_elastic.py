@@ -215,10 +215,10 @@ def run(sess, train_op, bcast_op):
             log_adaptation_duration_to_file(current_cluster_size(), adaptation_duration)
         step += 1
         logging.debug("before train_op")
-        time = timeit.timeit(lambda: sess.run(train_op),
+        timeing = timeit.timeit(lambda: sess.run(train_op),
                              number=args.num_batches_per_iter)
         logging.debug("after train_op")
-        img_sec = args.batch_size / time
+        img_sec = args.batch_size / timeing
         log('Iter #%d: %.1f img/sec per %s' % (step, img_sec, device))
         log_to_file(current_cluster_size(), img_sec)
         img_secs.append(img_sec)
