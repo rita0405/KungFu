@@ -155,6 +155,12 @@ def log_to_file(num_workers, images_second):
     with open(os.path.join(args.log_file_path, "throughput.json"), "a") as file:
         file.write(json.dumps(result) + "\n")
 
+def log_adaptation_duration_to_file(num_workers, duration):
+    line = str(num_workers) + "," + str(duration)
+    
+    with open(os.path.join(args.log_file_path, "adaptation_duration.txt"), "a") as file:
+        file.write(line + "\n")
+
 
 def log_detailed_result(value, error, attrs):
     attr_str = json.dumps(attrs, separators=(',', ':'))
@@ -190,6 +196,7 @@ def run(sess, train_op, bcast_op):
     img_secs = []
     need_sync = True
     step = 0
+    adaptation_start = time.time()
     while step < args.num_iters:
         if need_sync:
             logging.debug("before sync_step_op")
@@ -204,6 +211,8 @@ def run(sess, train_op, bcast_op):
                 logging.debug("after bcast_op")
                 log('bcast_op took %.3fs' % (duration))
             need_sync = False
+            adaptation_duration = time.time() - adaptation_start
+            log_adaptation_duration_to_file(current_cluster_size(), adaptation_duration)
         step += 1
         logging.debug("before train_op")
         time = timeit.timeit(lambda: sess.run(train_op),
@@ -218,6 +227,7 @@ def run(sess, train_op, bcast_op):
         if not keep:
             return
         if changed:
+            adaptation_start = time.time()
             need_sync = True
 
     img_sec_mean = np.mean(img_secs)
