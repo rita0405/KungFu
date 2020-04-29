@@ -1,3 +1,5 @@
+import time
+
 import tensorflow as tf
 from kungfu._utils import show_duration
 from kungfu.tensorflow.initializer import BroadcastGlobalVariablesOp
@@ -6,11 +8,13 @@ from kungfu.tensorflow.ops import (all_reduce, current_cluster_size,
 
 
 class ElasticHook(tf.train.SessionRunHook):
-    def __init__(self, local_batch_size, epochs, epoch_size):
+    def __init__(self, local_batch_size, epochs, epoch_size, profile=False):
         self._local_batch_size = local_batch_size
         self._total_samples = epoch_size * epochs
         self._need_sync = True
         self._exit_reason = None
+        self._profile = profile
+        self._begin_resize = None
 
     def begin(self):
         self._step = 0
@@ -35,11 +39,16 @@ class ElasticHook(tf.train.SessionRunHook):
             self._do_sync_offset(run_context.session)
             run_context.session.run(self._sync_state_op)
             self._need_sync = False
+            if self._begin_resize:
+                resize_duration = time.time() - self._begin_resize
+                if self._profile:
+                    print('resize took %.3fs' % (resize_duration))
 
     def after_run(self, run_context, run_values):
         self._step += 1
         np = current_cluster_size()
         self._trained_samples += self._local_batch_size * np
+        self._begin_resize = time.time()
         changed, keep = run_context.session.run(self._resize_op)
         if not keep:
             run_context.request_stop()
